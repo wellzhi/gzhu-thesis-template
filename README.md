@@ -35,12 +35,12 @@
 
 | 场景               | 命令                   | 备注                                        |
 | ---------------- | -------------------- | ----------------------------------------- |
-| 日常改稿             | `./compile-fast.sh`  | 写入 `thesis.fast.build`，插图为 draft 占位框，编译更快 |
-| **定稿 / 送审 / 提交** | `./compile-final.sh` | **删除**快速标记，嵌入 `figures/` 中真实图             |
-| 从零干净重编           | `./rebuild.sh`       | 先清理辅助文件再全文编译                              |
+| 日常改稿             | `./compile-fast.sh`  | 草稿模式，图片采用占位框，编译更快 |
+| 定稿 / 送审 / 提交 | `./compile-final.sh` | 终稿模式，删除快速标记，嵌入真实图，编译慢             |
+| 从零开始重新编译           | `./rebuild.sh`       | 先清理所有辅助文件再全文译，编译速度最慢  |
 
 
-> **送审稿 PDF**：一律用 `**./compile-final.sh`**；若怀疑 `.aux`/`.bbl` 损坏，改用 `**./rebuild.sh**`。不要用 `**compile-fast**` 的输出交稿。
+> 送审稿 PDF：一律用 `sh compile-final.sh`；若怀疑 `.aux`/`.bbl` 损坏，改用 `sh rebuild.sh`。不要用 `compile-fast` 的输出交稿。
 
 
 
@@ -66,7 +66,7 @@
 | 13  | `13-acknowledgments.tex`          | 致谢                 |
 | #   | `bst/gbt7714-numerical-local.bst` | GB/T 7714 数字编码著录样式 |
 | #   | `figures/`                        | 论文附件路径             |
-| #   | `references.bib`                  | 参考文献文章引用列表｜        |
+| #   | `references.bib`                  | 参考文献文章引用列表        |
 
 
 
