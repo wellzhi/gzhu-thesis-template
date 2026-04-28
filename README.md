@@ -51,8 +51,7 @@
 | 13 | `13-acknowledgments.tex` | 致谢 |
 |#|`bst/gbt7714-numerical-local.bst` | GB/T 7714 数字编码著录样式 |
 |#|`figures/` | 论文附件路径 |
-|#|`content/references.bib` | 参考文献文章引用列表｜
-|#|参考文献顺序 | `**\begin{document}` 后的 `\nocite{…}`可调整参考文献表条目顺序|
+|#|`references.bib` | 参考文献文章引用列表｜
 
 
 <a id="md-env"></a>
