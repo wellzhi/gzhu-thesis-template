@@ -23,8 +23,6 @@
 
 > **送审稿 PDF**：一律用 **`./compile-final.sh`**；若怀疑 `.aux`/`.bbl` 损坏，改用 **`./rebuild.sh`**。不要用 **`compile-fast`** 的输出交稿。
 
----
-
 <a id="md-structure"></a>
 ## 2. 仓库结构
 
