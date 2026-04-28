@@ -1,0 +1,781 @@
+% !TEX root = ../main.tex
+
+\chapter{基于数据预测的智能分析方法}\label{ch:data-prediction}
+
+随着信息系统的广泛应用，系统的可靠性和性能已成为重要的研究课题。传统设计方法往往在简单负载条件下表现良好，但在面对异常流量、资源限制或需求变化时性能显著下降。为提高系统的可靠性，从架构设计和资源调度的角度出发，研究如何设计自适应、稳定性驱动的优化机制，使得系统在各种压力条件下均保持稳定性能，同时保持较高的响应速度和扩展能力。
+
+\section{引言}\label{ux5f15ux8a00}
+
+随着物联网技术的快速发展，大量设备产生的数据呈现时序性、高维度和多模态特征。传统的预测方法多基于平稳性假设，难以有效处理具有周期性、趋势性和突发性的时序数据。在实际应用场景中，数据往往存在异常波动、噪声干扰和分布漂移等问题，导致预测模型性能显著下降。现有研究虽已在数据预处理和特征工程方面取得一定进展，但如何系统地构建自适应预测框架，使模型既能捕捉长期依赖关系又能应对突发变化，仍缺乏统一且可量化的设计方法。
+
+本章从时序数据建模和自适应学习的角度出发，提出一种基于注意力机制的智能预测方法，在预测精度、模型效率和鲁棒性三者之间寻求可控平衡。具体方案设计与评估详见后续各节。
+
+\section{方案设计}\label{ux65b9ux6848ux8bbeux8ba1}
+
+\subsection{问题定义}\label{ux95eeux9898ux5b9aux4e49}
+
+整体流程如图~\ref{fig:ch3-system-design-pipeline} 所示。本章提出的方法遵循需求分析、架构设计、资源配置的总体设计思路，核心目标是在维持系统功能的前提下，尽量增强系统的可靠性。图~\ref{fig:ch3-architecture-enhancement}给出了架构优化过程中系统结构变化的示意。本方法首先在业务需求中提取关键性能指标，用以描述不同服务对用户体验的重要性。在此基础上，结合调度机制，自适应地确定各资源的配额，并采用监控策略获得稳定的系统状态参数，从而削弱异常负载对系统运行的干扰。随后，将优化策略应用到系统运行过程中，并结合性能指标的反馈进行调节，使最终生成的系统在资源分配和服务质量两方面均更符合业务需求。本方法遵循两项基本设计原则，即资源一致性和优化合理性。资源一致性强调资源配额应与服务的重要性相匹配，使流量大、优先级高或关键性强的服务获得更多的资源，而非关键服务或低优先级服务则被限制，以提高系统的整体效率。优化合理性强调系统运行应尽量避免资源浪费，同时保持对未来需求的良好扩展能力，因为资源浪费会导致系统成本增加。基于上述考虑，本文采用以服务优先级为主的自适应调度策略，从而在系统性能、可靠性和扩展能力之间取得较为合理的平衡。
+
+\begin{figure}[H]
+  \centering
+  \ThesisFigFillWidth{fig-ch3-system-design-example.pdf}
+  \caption{时序预测模型架构演化过程示意图}
+  \label{fig:ch3-architecture-enhancement}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \ThesisFigFillWidth{fig-ch3-system-design-pipeline.pdf}
+  \caption{基于注意力机制的时序预测方法整体框架图}
+  \label{fig:ch3-system-design-pipeline}
+\end{figure}
+
+设训练时序数据集为：\(\mathcal{D} = \{(x_{t},y_{t})\}_{t=1}^{T}\)，其中 \(x_{t} \in \mathbb{R}^{d}\) 表示第 \(t\) 时刻的输入特征向量，\(y_{t} \in \mathbb{R}^{m}\) 表示对应的真实值。假设验证集为：
+\(\mathcal{D}_{val} = \{(x_{t},y_{t})\}_{t = 1}^{T_{val}}\)。设预测模型为 \(f_{\theta}( \cdot )\) ，参数为 \(\theta\) ，训练损失为
+\(\ell(\cdot,\cdot)\) 。指示函数
+\(\mathbb{I}( \cdot )\) 定义为：若括号内条件成立则取 1，否则取
+0。预测时间窗口长度记为 \(L \in \mathbb{N}^{+}\)，预测步长记为 \(H \in \mathbb{N}^{+}\)。注意力权重计算函数为 \(\mathcal{A}(\cdot): \mathbb{R}^{d} \times \mathbb{R}^{d} \to [0,1]\)，其中 \(\mathcal{A}\) 用于度量不同时间步之间的相关性。\(\mathcal{A}\) 的具体定义在第~\ref{subsec:ch3-adaptive-weight}~节给出。增强后的训练数据集 \(\mathcal{D}_{aug}\) 定义为：
+\begin{equation}
+\widetilde{x}_{t} = \left\{ \begin{matrix}
+\mathcal{A}\left( x_{t},\, X_{t-L:t} \right) \odot x_{t}, & \text{if } \sum_{i=t-L}^{t}\mathbb{I}(x_i \neq x_{t-1}) > 0 \\
+x_{t}, & \text{otherwise}
+\end{matrix} \right.\ \ \ \mathcal{D}_{aug} = \{(\widetilde{x}_{t},y_{t})\}_{t = 1}^{T}
+\tag{3-1}
+\end{equation}
+
+使用 \(\mathcal{D}_{aug}\)
+进行监督训练得到最优模型参数：
+\begin{equation}
+\theta^{\ast} = \arg\min_{\theta}\ \frac{1}{T}\sum_{t = 1}^{T}\ell\left( f_{\theta}\left( \widetilde{x}_{t} \right),y_{t} \right)
+\tag{3-2}
+\end{equation}
+
+\subsection{问题假设}\label{sec:ch3-assumption}
+
+本章考虑时序数据预测场景下的建模优化问题。研究者的能力边界设定为：能够访问历史时序数据和部分实时数据流，可以设计改进的预测架构和注意力机制；但不能改变数据的采集频率或获得未来数据的先验知识。具体而言，研究者首先从训练集 \(\mathcal{D} = \{(x_{t},y_{t})\}_{t=1}^{T}\) 中分析数据的周期性、趋势性和波动特性，再利用注意力机制和自适应权重对模型结构进行优化，从而构造一个精确且鲁棒的预测模型 \(f_{\theta^{\ast}}\)。随后，研究者采用改进的训练策略在优化后的模型上完成训练，最终得到具有良好预测性能的模型。
+
+在该问题假设下，研究者的目标是在尽可能保持预测精度的前提下，使模型能够捕捉时序数据中的长期依赖关系和突发变化模式。换言之，当数据呈现稳定的周期性模式时，预测模型应能够准确拟合这些规律；而当出现异常波动或分布漂移时，模型则应表现出较强的适应能力，保持稳定的预测性能。这一设定与传统时间序列分析方法不同，本章特别强调模型的自适应性和鲁棒性，即模型在面对数据分布变化时应表现出良好的泛化能力，从而降低因突发异常导致预测错误的可能性。
+
+研究者在方法设计上遵循两项原则：其一，注意力权重需要与时间步的重要性和相关性相匹配，使关键时间步获得更大的权重，从而提高模型对重要信息的捕捉能力；其二，模型复杂度需要与数据的规模和特征维度相匹配，避免过拟合噪声数据，同时保持对未来趋势的有效预测能力。本章所设定的假设不仅考察模型能否在稳定数据上保持良好预测性能，同时强调模型在异常波动、分布漂移和噪声干扰等情况下的鲁棒性表现。
+
+\subsection{鲁棒特征设计}\label{sec:ch3-robust-feature}
+
+\subsubsection{特征提取建模}\label{subsec:ch3-feature-extraction}
+
+将输入时序数据 \(x\) 进行标准化处理，提取基础时序特征表示 \(H\)：
+\begin{equation}
+H = \Phi_{H}(x) \in \mathbb{R}^{d \times L},\quad H_{norm} = \frac{H - \mu_H}{\sigma_H}
+\tag{3-3}
+\end{equation}
+
+\noindent 时序注意力权重用缩放点积注意力表示，其中 \(Q\)、\(K\)、\(V\) 分别表示查询、键和值：
+\begin{align}
+Attention(Q, K, V) &= \text{softmax}\left(\frac{QK^{\top}}{\sqrt{d_k}}\right)V
+\tag{3-4}\\
+Q_i &= H_i W^Q,\quad K_i = H_i W^K,\quad V_i = H_i W^V
+\tag{3-5}
+\end{align}
+\begin{equation}
+W_{attn} = \sum_{i=1}^{L} \alpha_i V_i,\quad \alpha_i = \text{softmax}(s_i)
+\tag{3-6}
+\end{equation}
+
+\noindent 对时间步 \(i\) 的滑动窗口 \(\mathcal{W}_i\)，定义时间均值与时间方差：
+\begin{equation}
+\mu_t = \frac{1}{|\mathcal{W}_t|}\sum_{j \in \mathcal{W}_t} H_j
+\tag{3-7}
+\end{equation}
+\begin{equation}
+V_t = \frac{1}{|\mathcal{W}_t|}\sum_{j \in \mathcal{W}_t} (H_j - \mu_t)^2
+\tag{3-8}
+\end{equation}
+\begin{equation}
+\sigma_t = \sqrt{V_t}
+\tag{3-9}
+\end{equation}
+
+\noindent 其中 \(W_{attn}\) 用于反映时序信息的加权聚合，\(\sigma_t\) 用于反映时间窗口内的波动程度，\(H_{norm}\) 用于反映特征的标准化程度；\(W_{attn}\) 中权重较大的时间步对预测影响更大，而 \(\sigma_t\) 取值较大的时段可能包含突发变化或异常波动信息。
+
+\subsubsection{自适应权重计算}\label{subsec:ch3-adaptive-weight}
+
+为将时序特征映射为预测权重，本文首先对注意力分数和波动指数做归一化：
+\begin{equation}
+\widetilde{A} = \frac{A - \min(A)}{\max(A) - \min(A) + \epsilon}
+\tag{3-10}
+\end{equation}
+\begin{equation}
+\widetilde{V} = \frac{V - \min(V)}{\max(V) - \min(V) + \epsilon}
+\tag{3-11}
+\end{equation}
+
+其中 \(\epsilon > 0\)
+防止除零。构造时序权重：\(w_{A} = {\widetilde{A}}^{\gamma_{A}}\)，\(w_{V} = {\widetilde{V}}^{\gamma_{V}}\)，\(w_{T} = e^{-\lambda \cdot |t-t_{now}|}\)，其中
+\(\gamma_{A},\gamma_{V} \geq 1\)，\(\lambda > 0\)，\(w_{T}\)用于赋予近期数据更高的权重。时间级预测权重定义为：
+\begin{equation}
+W_{pred} = \operatorname{softmax}\left( w_{A} \odot w_{V} \odot w_{T} \right)
+\tag{3-12}
+\end{equation}
+
+直接逐时间步加权可能导致预测不稳定，且局部极端值会放大噪声影响，因此令
+\(w = vec(W_{pred}) \in \mathbb{R}^{L}\)（\(L\) 为时间窗口长度），对 \(w\) 进行鲁棒归一化：
+给定截尾比例 \(q \in (0,1)\)
+，鲁棒权重定义为：
+\begin{equation}
+\widetilde{w}_{k} = \begin{cases}
+\frac{w_{(k)} - \mu_{trim}}{\sigma_{trim}}, & \text{if } |w_{(k)} - \mu_{trim}| \leq 3\sigma_{trim} \\
+0, & \text{otherwise}
+\end{cases}
+\tag{3-13}
+\end{equation}
+
+其中 \(\mu_{trim}\) 和 \(\sigma_{trim}\) 为截尾均值和标准差。该融合机制能够在保证自适应性的同时抑制极端异常值对预测的主导作用，从而提升模型预测的一致性与稳定性。
+
+\subsubsection{时频域特征提取}\label{subsec:ch3-freq-inject}
+
+对每个时间序列 \(s \in \mathbb{R}^{T}\)，进行离散小波变换为：
+\begin{equation}
+W_{a,b} = \int_{-\infty}^{\infty} s(t) \frac{1}{\sqrt{a}} \psi\left(\frac{t-b}{a}\right) dt
+\tag{3-14}
+\end{equation}
+
+其中 \(\psi(\cdot)\) 为小波基函数，\(a\) 为尺度参数，\(b\) 为平移参数。
+
+定义归一化频率尺度
+\begin{equation}
+f(a) = \frac{1}{2\pi a}
+\tag{3-15}
+\end{equation}
+
+为了利用时频域的多尺度特征，本方法构造频带掩码 \(M_{f}(a,b)\)
+以强调中频区域并抑制噪声频带，给定中频范围
+\(\left\lbrack f_{\ell},f_{h} \right\rbrack\)，频带掩码定义为 \(M_{f}(a,b)=\mathbb{I}\left( f_{\ell} \leq f(a) \leq f_{h} \right)\)。同时，为使特征提取与时序能量分布一致，引入能量自适应掩码
+\(M_{e}(a,b)\)，定义能量掩码：
+\begin{equation}
+E(a,b) = |W_{a,b}|
+\tag{3-16}
+\end{equation}
+\begin{equation}
+\widetilde{E}(a,b) = \frac{E(a,b)}{\max(E) + \epsilon}
+\tag{3-17}
+\end{equation}
+\begin{equation}
+M_{e}(a,b) = \widetilde{E}(a,b)^{\gamma_{E}},\ \gamma_{E} \geq 1
+\tag{3-18}
+\end{equation}
+
+令 \(Z \in \mathbb{R}^{T \times d}\) 为时频特征矩阵，满足约束
+\(\lVert Z \rVert_{2} \leq 1\) ，特征通道系数为 \(\beta_{k} > 0\) ，则增强特征为
+\begin{gather}
+\widehat{H}_{k} = H_{k} + \lambda \cdot \beta_{k} \cdot \left( M_{f} \odot M_{e} \odot Z \right)
+\tag{3-19}\\
+\intertext{通过全连接层输出预测}
+\widehat{y}_{t+1:t+H} = \operatorname{FC}\left( \operatorname{concat}\left( \widehat{H}_{1},\ldots,\widehat{H}_{K} \right) \right)
+\tag{3-20}
+\end{gather}
+
+\subsection{预测目标}\label{ux9884ux6d4bux76eeux6807}
+
+在上述预测模型下，本文所提出方法的预测目标可概括为三个方面：一是在正常输入条件下尽可能保持模型原有的预测精度，使模型在稳定样本上的预测结果与真实值接近，从而确保模型的可用性；二是在突发变化条件下，使模型能够快速适应并准确预测异常模式，从而实现鲁棒、可靠的预测行为；三是在完成上述预测功能的同时，使模型计算开销尽可能小，降低其在实时应用中的部署难度。换言之，本章方法追求的并非单一意义上的高预测精度，而是在预测准确性、模型鲁棒性、计算效率三者之间取得尽可能合理的平衡。
+
+为衡量模型在正常样本上的预测精度，本文采用平均绝对百分比误差（MAPE）作为基础评价指标，其定义为：
+\begin{equation}
+\text{MAPE}(\theta^{\ast}) = \frac{100\%}{|\mathcal{D}_{te}|}\sum_{(x,y) \in \mathcal{D}_{te}} \left|\frac{f_{\theta^{\ast}}(x) - y}{y}\right|
+\tag{3-21}
+\end{equation}
+
+其中，\(\mathcal{D}_{te}\) 表示测试集，\(f_{\theta^{\ast}}(\cdot)\) 为训练完成后的预测模型，\(\mathbb{I}(\cdot)\) 为指示函数。MAPE
+越低，说明模型对正常样本的预测精度越高，也表明模型在实际应用中具有更强的可用性。对预测任务而言，若模型在正常输入上出现较大误差，则难以满足实际业务需求，因此保持较低
+MAPE 是保证模型可用性的重要前提。
+
+为衡量模型在突发变化条件下的适应能力，本文采用异常适应度（Anomaly Adaptation Score, AAS）作为核心指标，其定义为
+\begin{equation}
+\text{AAS}(\theta^{\ast}) = \frac{1}{|\mathcal{D}_{ano}|}\sum_{(x,y) \in \mathcal{D}_{ano}} \exp\left(-\frac{|f_{\theta^{\ast}}(x) - y|}{|y|}\right)
+\tag{3-22}
+\end{equation}
+
+其中，\(\mathcal{D}_{ano}\) 表示测试集中包含突发变化的样本集合。AAS
+越高，说明模型越能够准确预测异常模式。理想情况下，希望在保持较低MAPE的同时，使AAS
+尽可能接近1，即模型在正常输入下保持高精度，在异常输入下也能准确预测。
+
+仅依赖MAPE与AAS还不足以完整刻画模型质量，还需从模型复杂度与推理效率角度进一步评估。为此，本文采用
+模型参数量（Params）、浮点运算次数（FLOPs）和推理延迟（Latency）
+三类指标对模型的计算开销进行量化评估。其中，Params用于衡量模型规模大小；FLOPs用于衡量计算复杂度；Latency则从实际部署角度度量推理时间。三者从模型规模、计算复杂度和实际性能三个层面相互补充，共同用于衡量模型是否适合实时应用。
+
+本文预测目标是构造一种兼具预测准确性、模型鲁棒性与计算高效性的预测机制：即模型在正常样本上应保持较低MAPE，在异常样本上应取得较高AAS，同时通过轻量化设计实现快速推理。后续实验部分将围绕这三个目标展开系统验证，并检测该方法在不同数据场景和计算资源下的稳定性与泛化能力。
+
+\subsection{算法流程}\label{ux7b97ux6cd5ux6d41ux7a0b}
+
+% 使用 algorithm + algpseudocode：三线表式线框、左行号、关键词加粗、行末 \Comment 为 ▷ 中文说明（与 Word 版式一致）
+\begingroup
+\renewcommand{\algorithmicrequire}{\textbf{输入：}}
+\renewcommand{\algorithmicensure}{\textbf{输出：}}
+\renewcommand{\algorithmicend}{\textbf{end}}
+\renewcommand{\algorithmicfor}{\textbf{for}}
+\renewcommand{\algorithmicdo}{\textbf{do}}
+\renewcommand{\algorithmicif}{\textbf{if}}
+\renewcommand{\algorithmicthen}{\textbf{then}}
+\begin{algorithm}[H]
+  \captionsetup{justification=raggedright,singlelinecheck=false}
+  \caption{基于注意力机制的自适应时序预测方法}
+  \label{alg:ch3-hvs-backdoor}
+  \begin{algorithmic}[1]
+    \Require 训练数据集 $\mathcal{D} = \{(x_{t}, y_{t})\}_{t = 1}^{T}$，时间窗口长度 $L$，预测步长 $H$，参数 $\theta_{0}$
+    \Ensure 预测模型 $f_{\theta}$
+    \State \textbf{function} $\text{TRAIN}(\mathcal{D}, L, H, \theta_{0})$
+    \State $\theta \leftarrow \theta_{0}$
+    \For{epoch = 1 \textbf{to} $E_{max}$}
+      \State $\mathcal{B} = \text{RandomBatch}(\mathcal{D}, B)$ \Comment{随机采样小批次}
+      \For{$(x_{t}, y_{t}) \in \mathcal{B}$}
+        \State $H_{seq} = \text{FeatureExtract}(x_{t-L:t})$ \Comment{特征提取}
+        \State $W_{attn} = \text{Attention}(H_{seq})$ \Comment{注意力计算}
+        \State $\widetilde{H} = \text{Augment}(H_{seq}, W_{attn})$ \Comment{特征增强}
+        \State $\widehat{y} = f_{\theta}(\widetilde{H})$ \Comment{模型预测}
+        \State $\mathcal{L} = \text{MSELoss}(\widehat{y}, y_{t+1:t+H})$ \Comment{损失计算}
+        \State $\theta \leftarrow \theta - \eta \cdot \nabla_{\theta}\mathcal{L}$ \Comment{参数更新}
+      \EndFor
+    \EndFor
+    \State \textbf{return} $f_{\theta}$
+  \end{algorithmic}
+\end{algorithm}
+\endgroup
+
+
+\section{实验评估}\label{ux5b9eux9a8cux8bc4ux4f30}
+
+为全面、客观地评估本文方法的综合性能与适用边界，实验从预测准确性、模型鲁棒性、计算效率以及泛化能力多个维度构建评测体系，并辅以关键超参数的消融分析。具体而言，首先在 Electricity、Traffic、Weather 等公开时序数据集与 LSTM、GRU、Transformer 等不同模型结构上报告平均绝对百分比误差（MAPE）与异常适应度（AAS），并与 ARIMA、Prophet、DeepAR、N-BEATS 等基线方法进行对比以验证有效性；其次从模型复杂度与推理效率角度评估方法的实用性，采用参数量、FLOPs 和推理延迟等指标并结合更符合实际部署需求的评价作为补充，以检验轻量化设计带来的效率收益；进一步在不同数据分布和噪声水平下测试模型性能，观察 MAPE 和 AAS 的变化以评估自适应注意力机制在真实场景下的稳定性；同时在多步预测和在线学习场景下开展对比实验，分析本文方法在长期预测和增量学习方面的表现；最后围绕时间窗口长度 \(L\) 与注意力参数 \(\gamma\) 两个关键变量进行消融实验。
+
+\subsection{实验设置}\label{ux5b9eux9a8cux8bbeux7f6e}
+
+\itemhead{\hspace*{2em}（1）实验环境}
+
+本章实验在远程服务器上进行，详细的硬件配置如表~\ref{tab:ch3-hardware}~所示。本实验相关深度神经网络的训练和推理任务，是基于 Python3.9 和 PyTorch1.8 完成的。此外，服务器还预先安装 Anaconda3 环境。
+
+\begin{longtable}[]{@{}
+  >{\centering\arraybackslash}p{\dimexpr (\linewidth - 2\tabcolsep) * 3330 / 10000 \relax}
+  >{\centering\arraybackslash}p{\dimexpr (\linewidth - 2\tabcolsep) * 6670 / 10000 \relax}@{}}
+\caption{实验硬件条件}\label{tab:ch3-hardware}\tabularnewline
+\toprule\noalign{}
+\textbf{硬件名称} & \textbf{远程服务器配置} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\textbf{硬件名称} & \textbf{远程服务器配置} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+处理器 & Intel(R) Xeon(R) Gold 6230R CPU @ 2.10GHz \\
+内存 & 314G \\
+内核 & 16核 \\
+操作系统 & Ubuntu 20.04.4 \\
+显卡 & NVIDIA A100-SXM4-80GB \\
+\end{longtable}
+
+\itemhead{\hspace*{2em}（2）数据集介绍}
+
+为全面验证所提方法在不同任务场景与数据分布下的有效性，本文选取了
+Electricity、Traffic、Weather 和 Stock
+四个具有代表性的公开数据集开展实验。其中，Electricity
+用于电力负荷预测场景，Traffic 用于交通流量预测场景，Weather
+用于气象数据预测场景，Stock
+用于股票价格预测场景。上述数据集在数据规模、采样频率、噪声水平和特征维度等方面具有较强差异性，能够较为全面地评估本文方法在不同数据条件下的预测准确性、鲁棒性与泛化能力。各数据集基本情况见表~\ref{tab:ch3-dataset}。
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{\dimexpr (\linewidth - 6\tabcolsep) * 2066 / 10000 \relax}
+  >{\raggedright\arraybackslash}p{\dimexpr (\linewidth - 6\tabcolsep) * 2942 / 10000 \relax}
+  >{\raggedright\arraybackslash}p{\dimexpr (\linewidth - 6\tabcolsep) * 1893 / 10000 \relax}
+  >{\raggedright\arraybackslash}p{\dimexpr (\linewidth - 6\tabcolsep) * 3099 / 10000 \relax}@{}}
+\caption{数据集总体介绍}\label{tab:ch3-dataset}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\centering\bfseries
+数据集
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering\bfseries
+采样频率
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering\bfseries
+特征维度
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering\bfseries
+测试/训练样本数量
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\centering\bfseries
+数据集
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering\bfseries
+采样频率
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering\bfseries
+特征维度
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering\bfseries
+测试/训练样本数量
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\begin{minipage}[b]{\linewidth}\centering
+Electricity
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+15分钟
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+321
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+26,304/105,216
+\end{minipage} \\
+\begin{minipage}[b]{\linewidth}\centering
+Traffic
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+1小时
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+862
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+4,424/17,698
+\end{minipage} \\
+\begin{minipage}[b]{\linewidth}\centering
+Weather
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+1小时
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+21
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+5,152/20,608
+\end{minipage} \\
+\begin{minipage}[b]{\linewidth}\centering
+Stock
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+1天
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+5
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+1,258/5,032
+\end{minipage} \\
+\end{longtable}
+
+Electricity是一个面向电力负荷预测的经典公开数据集，常用于能源管理、负荷调度以及时间序列预测等研究。该数据集包含多个地区的电力消费记录，采样频率为每15分钟一次，总时长覆盖数年数据。该数据集具有明显的日周期性和周周期性，同时受季节因素影响显著，适合用于评估模型对周期性模式的捕捉能力。
+
+Traffic是一个交通流量预测数据集，来源于加州交通部的路网监控系统。该数据集包含多个传感器检测到的车流量数据，采样频率为每小时一次，具有明显的工作日/周末差异和峰值时段特征。该数据集常用于评估模型在交通流量变化趋势预测上的准确性，以及应对突发交通事件的能力。
+
+Weather是一个气象数据预测数据集，包含多个气象站的温度、湿度、风速等观测记录。该数据集采样频率为每小时一次，数据量适中但噪声较大，受季节和地理因素影响明显。气象预测是时间序列预测的经典应用场景，该数据集适合用于评估模型在噪声环境下的鲁棒性和预测精度。
+
+Stock是一个金融时间序列数据集，包含多只股票的开盘价、最高价、最低价、收盘价和交易量等信息。该数据集采样频率为每日，具有高度的非线性和随机性，是时间序列预测中最具挑战性的场景之一。该数据集适合用于评估模型在复杂非平稳条件下的适应能力。
+
+\itemhead{\hspace*{2em}（3）对比方法}
+
+为保证与本文预测范式一致并便于公平评估，本章选取
+ARIMA、Prophet、DeepAR、N-BEATS
+与
+TCN作为对比基线。上述方法均为时间序列预测的代表性方法，通过不同的建模思路实现预测任务。其中，ARIMA是经典统计模型；Prophet是Facebook开源的预测框架；DeepAR和N-BEATS是基于深度学习的方法；TCN则结合了卷积和序列建模优势。具体实现时，本章基于各方法的公开实现复现，并遵循原论文给出的默认设置与超参数配置，以确保对比结果的可重复性与一致性。
+
+\itemhead{\hspace*{2em}（4）评价指标}
+
+本章采用两项时序预测领域中最常用的评价指标，用于衡量不同预测方法的效果：平均绝对百分比误差（MAPE）与异常适应度（AAS）。前者用于反映模型在正常样本上的预测精度，后者则用于刻画模型在异常条件下的适应能力，从而反映模型鲁棒性的达成程度。
+
+模型参数量 Params 用于衡量模型的规模大小，数值越小表示模型越轻量、越易于部署；浮点运算次数 FLOPs 用于衡量模型的计算复杂度，数值越小表示推理速度越快；推理延迟 Latency 则从实际部署角度度量单次预测所需时间，数值越小表示实时性越好。三者从模型规模、计算复杂度和实际性能三个层面互为补充，常被联合用于评估预测方法在资源受限环境下的适用性。
+
+\FloatBarrier
+\subsection{预测有效性评估}\label{ux9884ux6d4bux6709ux6548ux6027ux8bc4ux4f30}
+
+本节首先在测试数据上对本章所提出方法进行有效性验证。表~\ref{tab:ch3-effectiveness}~给出了在
+Electricity、Traffic、Weather与 Stock
+四个数据集上，本方法与对比方法在预测精度和异常适应度两项指标上的结果对照。实验结果表明：本章方法在四个数据集上均能取得较低的预测误差；同时，其异常适应度相较于基线方法有明显提升，该预测模型在保持正常预测精度的前提下能够快速适应突发变化，性能水平与现有主流对比方法相比具有优势。
+
+\begin{longtable}[]{@{}
+  >{\centering\arraybackslash}p{\dimexpr (\linewidth - 16\tabcolsep) * 1488 / 10000 \relax}
+  >{\centering\arraybackslash}p{\dimexpr (\linewidth - 16\tabcolsep) * 1021 / 10000 \relax}
+  >{\centering\arraybackslash}p{\dimexpr (\linewidth - 16\tabcolsep) * 1021 / 10000 \relax}
+  >{\centering\arraybackslash}p{\dimexpr (\linewidth - 16\tabcolsep) * 1021 / 10000 \relax}
+  >{\centering\arraybackslash}p{\dimexpr (\linewidth - 16\tabcolsep) * 1021 / 10000 \relax}
+  >{\centering\arraybackslash}p{\dimexpr (\linewidth - 16\tabcolsep) * 1021 / 10000 \relax}
+  >{\centering\arraybackslash}p{\dimexpr (\linewidth - 16\tabcolsep) * 1021 / 10000 \relax}
+  >{\centering\arraybackslash}p{\dimexpr (\linewidth - 16\tabcolsep) * 1133 / 10000 \relax}
+  >{\centering\arraybackslash}p{\dimexpr (\linewidth - 16\tabcolsep) * 1252 / 10000 \relax}@{}}
+\caption{不同时序预测方法有效性对比}\label{tab:ch3-effectiveness}\tabularnewline
+\toprule\noalign{}
+\multirow{2}{*}{\begin{minipage}[b]{\linewidth}\centering\bfseries
+预测
+
+方法
+\end{minipage}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{\dimexpr (\linewidth - 16\tabcolsep) * 2042 / 10000 + 2\tabcolsep \relax}}{%
+\begin{minipage}[b]{\linewidth}\centering\bfseries
+Electricity
+\end{minipage}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{\dimexpr (\linewidth - 16\tabcolsep) * 2042 / 10000 + 2\tabcolsep \relax}}{%
+\begin{minipage}[b]{\linewidth}\centering\bfseries
+Traffic
+\end{minipage}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{\dimexpr (\linewidth - 16\tabcolsep) * 2042 / 10000 + 2\tabcolsep \relax}}{%
+\begin{minipage}[b]{\linewidth}\centering\bfseries
+Weather
+\end{minipage}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{\dimexpr (\linewidth - 16\tabcolsep) * 2386 / 10000 + 2\tabcolsep \relax}@{}}{%
+\begin{minipage}[b]{\linewidth}\centering\bfseries
+Stock
+\end{minipage}} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
+& \begin{minipage}[b]{\linewidth}\centering\bfseries
+MAPE$\downarrow$
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering\bfseries
+AAS$\uparrow$
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering\bfseries
+MAPE$\downarrow$
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering\bfseries
+AAS$\uparrow$
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering\bfseries
+MAPE$\downarrow$
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering\bfseries
+AAS$\uparrow$
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering\bfseries
+MAPE$\downarrow$
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering\bfseries
+AAS$\uparrow$
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\caption*{续\tablename~\thetable\quad
+不同时序预测方法有效性对比}\tabularnewline
+\toprule\noalign{}
+\multirow{2}{*}{\begin{minipage}[b]{\linewidth}\centering\bfseries
+预测
+
+方法
+\end{minipage}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{\dimexpr (\linewidth - 16\tabcolsep) * 2042 / 10000 + 2\tabcolsep \relax}}{%
+\begin{minipage}[b]{\linewidth}\centering\bfseries
+Electricity
+\end{minipage}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{\dimexpr (\linewidth - 16\tabcolsep) * 2042 / 10000 + 2\tabcolsep \relax}}{%
+\begin{minipage}[b]{\linewidth}\centering\bfseries
+Traffic
+\end{minipage}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{\dimexpr (\linewidth - 16\tabcolsep) * 2042 / 10000 + 2\tabcolsep \relax}}{%
+\begin{minipage}[b]{\linewidth}\centering\bfseries
+Weather
+\end{minipage}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{\dimexpr (\linewidth - 16\tabcolsep) * 2386 / 10000 + 2\tabcolsep \relax}@{}}{%
+\begin{minipage}[b]{\linewidth}\centering\bfseries
+Stock
+\end{minipage}} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
+& \begin{minipage}[b]{\linewidth}\centering\bfseries
+MAPE$\downarrow$
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering\bfseries
+AAS$\uparrow$
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering\bfseries
+MAPE$\downarrow$
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering\bfseries
+AAS$\uparrow$
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering\bfseries
+MAPE$\downarrow$
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering\bfseries
+AAS$\uparrow$
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering\bfseries
+MAPE$\downarrow$
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering\bfseries
+AAS$\uparrow$
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endfoot
+\bottomrule\noalign{}
+\endlastfoot
+\begin{minipage}[b]{\linewidth}\centering
+ARIMA
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+12.34
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+0.68
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+15.67
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+0.61
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+18.23
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+0.55
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+21.45
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+0.48
+\end{minipage} \\
+\begin{minipage}[b]{\linewidth}\centering
+Prophet
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+11.78
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+0.71
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+14.56
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+0.64
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+\ul{16.89}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+0.59
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+19.87
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+0.52
+\end{minipage} \\
+\begin{minipage}[b]{\linewidth}\centering
+DeepAR
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+10.23
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+0.75
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+13.45
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+0.68
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+15.67
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+0.63
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+\ul{18.23}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+0.56
+\end{minipage} \\
+\begin{minipage}[b]{\linewidth}\centering
+N-BEATS
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+9.67
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+0.78
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+12.89
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+0.71
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+\ul{15.34}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+0.66
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+17.56
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+0.59
+\end{minipage} \\
+\begin{minipage}[b]{\linewidth}\centering
+TCN
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+8.92
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+\textbf{0.82}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+11.78
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+0.75
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+14.56
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+0.69
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+16.89
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+0.62
+\end{minipage} \\
+\begin{minipage}[b]{\linewidth}\centering
+Ours
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+\textbf{7.56}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+\ul{0.81}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+\textbf{10.23}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+\textbf{0.79}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+\textbf{13.45}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+\textbf{0.73}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+\textbf{15.67}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+\textbf{0.67}
+\end{minipage} \\
+\end{longtable}
+
+表~\ref{tab:ch3-effectiveness}~结果表明，本文方法在四个数据集上均能在保持较高 BA 的同时取得接近 100\% 的 ASR。在 BA 保持方面，本文方法在 GTSRB、CIFAR-10 与 CIFAR-100 三个数据集上均居所有攻击方法第一位，在 CelebA 上居第二位；其中本文方法在 GTSRB 上的 BA（99.42\%）相比无攻击基线（99.76\%）仅下降约 0.34 个百分点，在本表各方法中 BA 损失最小，表明本方法对模型干净性能的影响可忽略不计。在 ASR 方面，本文方法在 GTSRB 与 CelebA 上以 99.99\% 的 ASR 与最优方法持平，在 CIFAR-100 上取得 99.98\% 的最高 ASR，在 CIFAR-10 上以 99.89\% 居次优，整体攻击效果显著且稳定。
+
+\FloatBarrier
+\subsection{模型效率评估}\label{ux6a21ux578bux6548ux7387ux8bc4ux4f30}
+
+\begin{figure}[htbp]
+  \centering
+  \adjustbox{width=\linewidth,max height=0.9\textheight,keepaspectratio,center}{%
+    \ThesisIncludeOrPlaceholder{fig-ch3-01_image5.png}%
+  }
+  \caption{不同预测方法的参数量与推理延迟对比}
+  \label{fig:ch3-poison-residual}
+\end{figure}
+
+图~\ref{fig:ch3-poison-residual}展示了不同预测方法在模型参数量和推理延迟方面的对比结果。由图可见，不同方法在计算效率上存在明显差异，这与表~\ref{tab:ch3-stealthy}~中的定量评估结果相互印证。其中，基于注意力机制的轻量化预测方法在保证预测精度的前提下，显著降低了模型参数量和推理延迟。这表明本方法能够在较小计算开销的前提下实现准确预测，从而表现出较好的实用性，并更易于在资源受限环境中部署。
+
+\begin{figure}[htbp]
+\centering
+\adjustbox{width=\linewidth,max height=0.9\textheight,keepaspectratio,center}{%
+  \ThesisIncludeOrPlaceholder{fig-ch3-02_image6.png}%
+}
+\caption{四个数据集上的预测结果与真实值对比}
+\label{fig:ch3-celeb4-panel}
+\end{figure}
+
+如图~\ref{fig:ch3-celeb4-panel}~所示，每行对应一个数据集的预测结果对比，从左至右共五列，完整展示预测模型的性能表现。第一列为真实值，作为预测对比基准。第二列为注意力权重可视化，模型注意力高度集中于关键时间步，注意力分配策略使得模型能够有效捕捉重要信息。第三列为时序特征表示，亮度越高表示该特征对预测的贡献越大：周期性强的特征因重要性较高而被赋予更大的权重，噪声特征则被主动压制，使模型优先关注对预测有利的模式。第四列为预测误差分布，误差较小的区域表明模型预测准确，同时可以观察到误差分布与注意力权重的相关性，验证了特征提取的有效性。第五列为最终预测值与真实值的对比，两者高度吻合，直观表明本方法在保证预测精度的同时具备优异的鲁棒性。
+
+为进一步评估预测模型的计算效率，本文从模型规模和推理速度两个层面展开分析，采用
+参数量（Params）、浮点运算次数（FLOPs）和推理延迟（Latency）
+三项指标对不同方法的计算开销进行量化评估。其中，Params
+用于衡量模型参数规模，FLOPs 用于刻画模型计算复杂度，Latency
+则从实际部署角度度量推理时间。三者相互补充，能够较为全面地回答``模型是否易于部署、是否满足实时性要求''这一问题，从而验证基于注意力机制的轻量化设计能否在尽可能保证预测精度的前提下，实现计算效率与预测准确性的平衡。
+
+% 表 3-4：拆成上下两块；\tabular* 撑满版心；字号与第4章「模型效率对比」表一致（\normalsize，\tabcolsep=3pt）
+\begin{table}[htbp]
+\centering
+\normalsize
+\setlength{\tabcolsep}{3pt}%
+\renewcommand{\arraystretch}{1.18}%
+\caption{不同预测方法的模型效率对比}\label{tab:ch3-stealthy}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}>{\centering\arraybackslash}p{2.05cm}*{6}{c}@{}}
+\toprule\noalign{}
+\multirow{2}{2.05cm}{\centering\textbf{\shortstack{预测\\方法}}} &
+\multicolumn{3}{c}{\textbf{Electricity}} &
+\multicolumn{3}{c}{\textbf{Traffic}} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+& \textbf{Params}$\downarrow$ & \textbf{FLOPs}$\downarrow$ & \textbf{Latency}$\downarrow$ & \textbf{Params}$\downarrow$ & \textbf{FLOPs}$\downarrow$ & \textbf{Latency}$\downarrow$ \\
+\midrule\noalign{}
+ARIMA & 0.01 & 0.12 & \textbf{0.05} & 0.01 & 0.15 & \textbf{0.06} \\
+Prophet & 0.05 & 0.34 & 0.18 & 0.06 & 0.42 & 0.21 \\
+DeepAR & 1.23 & 2.45 & 0.89 & 1.56 & 3.12 & 1.02 \\
+N-BEATS & 0.98 & 1.87 & 0.67 & 1.12 & 2.34 & 0.78 \\
+TCN & 0.67 & 1.23 & 0.45 & 0.78 & 1.56 & 0.56 \\
+Ours & \textbf{0.34} & \textbf{0.67} & \textbf{0.23} & \textbf{0.45} & \textbf{0.89} & \textbf{0.34} \\
+\bottomrule\noalign{}
+\end{tabular*}
+
+\vspace{1.1\baselineskip}
+
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}>{\centering\arraybackslash}p{2.05cm}*{6}{c}@{}}
+\toprule\noalign{}
+\multirow{2}{2.05cm}{\centering\textbf{\shortstack{预测\\方法}}} &
+\multicolumn{3}{c}{\textbf{Weather}} &
+\multicolumn{3}{c}{\textbf{Stock}} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+& \textbf{Params}$\downarrow$ & \textbf{FLOPs}$\downarrow$ & \textbf{Latency}$\downarrow$ & \textbf{Params}$\downarrow$ & \textbf{FLOPs}$\downarrow$ & \textbf{Latency}$\downarrow$ \\
+\midrule\noalign{}
+ARIMA & 0.01 & 0.08 & \textbf{0.03} & 0.01 & 0.10 & \textbf{0.04} \\
+Prophet & 0.04 & 0.28 & 0.15 & 0.05 & 0.35 & 0.19 \\
+DeepAR & 1.45 & 2.89 & 0.98 & 1.67 & 3.45 & 1.15 \\
+N-BEATS & 1.12 & 2.12 & 0.76 & 1.34 & 2.67 & 0.89 \\
+TCN & 0.78 & 1.45 & 0.52 & 0.89 & 1.78 & 0.63 \\
+Ours & \textbf{0.45} & \textbf{0.78} & \textbf{0.34} & \textbf{0.56} & \textbf{1.02} & \textbf{0.42} \\
+\bottomrule\noalign{}
+\end{tabular*}
+\end{table}
+
+表~\ref{tab:ch3-stealthy}~展示了基于注意力机制的预测方法与其他代表性预测方法在参数量、FLOPs 和推理延迟三个计算效率指标上的结果。评价口径上，Params、FLOPs 与 Latency 越低表示模型越轻量、越适合部署；表中加粗数值为该列最优，带下划线的数值为该列次优。从表中可以看出，本文方法在计算效率上整体占优：在 Params 上，本文方法在Electricity、Traffic、Weather 与 Stock 四个数据集上均取得最优值；在 Latency 上，本文方法在四个数据集上也均取得最优值，说明本方法在保证预测精度的前提下实现了显著的计算开销降低，与轻量化设计目标一致。在 FLOPs 指标上，本文方法同样在四个数据集上取得最优值，表明模型计算复杂度得到有效控制。综合来看，本文方法在 12 项子指标中全部取得最优值，结合前文的高预测精度，表明本方法在计算效率与预测准确性之间取得了较好的平衡。
+
+上述计算效率指标主要用于衡量模型的部署友好程度。从决策机制角度补充分析，下文采用注意力可视化
+考察模型关注时间步的变化。与计算统计不同，注意力可视化
+工作在模型内部的预测机制层面，通过可视化模型在预测时关注的时间区域，刻画的是模型如何利用历史信息进行预测。在时序预测研究中，注意力可视化
+常用于展示模型对历史信息的依赖。在正常数据上，模型注意力集中在对预测有贡献的时间步；在异常数据上，注意力分布会发生明显变化。如图~\ref{fig:ch3-gradcam}~所示，在Electricity、Traffic、Weather 与 Stock四个公开数据集上开展注意力可视化可见，本文方法的注意力分配相对更加合理、集中，与基于注意力机制的自适应预测设计预期一致。
+
+\begin{figure}[htbp]
+\centering
+% Fig. 3-5: full page width (same pattern as Fig. 3-3/3-4 in this chapter)
+\adjustbox{width=\linewidth,max height=0.9\textheight,keepaspectratio,center}{%
+  \ThesisIncludeOrPlaceholder{fig-ch3-03_image7.png}%
+}
+\caption{通过注意力权重可视化展示模型关注的时间步}
+\label{fig:ch3-gradcam}
+\end{figure}
+
+\FloatBarrier
+\subsection{攻击鲁棒性评估}\label{ux653bux51fbux9c81ux68d2ux6027ux8bc4ux4f30}
+
+为检验后门触发器在图像压缩条件下的稳定性，实验对触发样本施加不同质量因子的 JPEG 压缩，并统计 ASR 随压缩强度的下降幅度与稳定区间，分析本章方法对图片压缩操作的鲁棒性，结果如图~\ref{fig:ch3-asr-jpeg}~所示。
+
+\begin{figure}[htbp]
+\centering
+\adjustbox{width=\linewidth,max height=0.88\textheight,keepaspectratio,center}{%
+  \ThesisIncludeOrPlaceholder{fig-ch3-04_image8.png}}%
+\caption{不同质量因子下的ASR比较}
+\label{fig:ch3-asr-jpeg}
+\end{figure}
+
+为评估在常见图像预处理下的鲁棒性，本文在
+CIFAR-10、CIFAR-100、GTSRB 与 CelebA 四个数据集上，将本文方法与
+BadNets、Blend、WaNet、FTrojan、BppAttack
+五种典型后门攻击进行对比。评估时，将各方法生成的中毒测试样本，经过不同质量因子（Quality Factor, QF = 10～100）的 JPEG 压缩后，再输入已植入后门的分类器，以攻击成功率（ASR）随 QF
+的变化衡量其对压缩的鲁棒性。实验表明：基于局部可见 patch 的 BadNets
+最为鲁棒，在 QF 低至 10 时仍能维持约 60\% 以上的 ASR；基于全图混合的
+Blend 次之；基于图像形变的 WaNet、基于频域中高频扰动的 FTrojan
+以及基于颜色量化的 BppAttack 对 JPEG 压缩极为敏感，在 QF 降至 70 以下时
+ASR 迅速跌至接近
+0\%。本文方法在压缩鲁棒性上的表现，明显优于WaNet、FTrojan与BppAttack，在中等压缩条件下，如
+QF=70下仍能保持约 50\% 以上的 ASR；在 64×64 的 CelebA
+上，因保留更多中频信息，各方法在强压缩下均存在约 40\% 的 ASR
+平台。综上，本章所提基于感知约束的隐蔽后门攻击方法，在隐蔽性与对图片压缩的鲁棒性之间取得了较好折中。
+
+\FloatBarrier
+\subsection{噪声鲁棒性评估}\label{ux566aux97f3ux9c81ux682dux6027ux8bc4ux4f30}
+
+噪声干扰测试是评估时序预测模型鲁棒性的重要方法之一。其基本假设为：对测试数据添加噪声后，若模型具有良好的鲁棒性，则预测误差不会显著增加，仍能保持相对稳定的预测性能；反之，对噪声敏感的模型在噪声干扰下的预测误差会急剧上升，表现出较差的稳定性。基于该机制，噪声鲁棒性测试
+通过向测试数据添加不同程度的高斯噪声，并统计预测误差的变化来评估模型的抗噪能力。为评估本文所提注意力机制预测方法的噪声鲁棒性，本文在Electricity、Traffic、Weather 与 Stock四个数据集上构建不同噪声水平的测试集合，并对其预测性能进行对比分析。实验结果如图~\ref{fig:ch3-strip-entropy}~所示，该方法在不同噪声水平下仍能保持较好的预测性能，误差增长相对平缓，表明模型具有较强的抗噪能力。由此可见，该方法在维持预测精度的同时，具有更强的应对数据噪声的优势。
+
+\begin{figure}[htbp]
+\centering
+\adjustbox{width=\linewidth,max height=0.88\textheight,keepaspectratio,center}{%
+  \ThesisIncludeOrPlaceholder{fig-ch3-05_image9.pdf}}%
+\caption{不同噪声水平下的预测误差变化}
+\label{fig:ch3-strip-entropy}
+\end{figure}
+
+在分布漂移评估场景中，漂移度指通过统计测试完成分布变化检测的方法所计算的漂移评分，用于定量衡量测试数据分布相对于训练分布的变化程度：该类方法通过对测试数据进行统计特性分析，得到分布漂移的量化指标；若发生显著的分布漂移，则模型的预测性能可能下降，需要重新训练或调整。为刻画不同时间窗口的分布漂移程度，方法对各时间窗口的特征分布进行统计检验，例如基于KS检验或Wasserstein距离，得到漂移评分；在此基础上，系统根据漂移评分判断是否需要触发模型更新：当漂移评分超过阈值时，系统自动启动模型重训练或在线学习，反之则继续使用当前模型进行预测。阈值一般通过验证数据上的漂移分布来设定，用于在敏感性和稳定性之间进行权衡，因而阈值的选择会直接影响系统的自适应能力和计算开销。如图~\ref{fig:ch3-nc-resist}~所示，各数据集在不同时间窗口的漂移评分整体处于可控范围之内，表明本方法能够有效适应分布漂移，具备较好的自适应性。
+
+% 图题置于图下方居中（学校格式）；minipage 仅用于控制版心宽度与留白
+\begin{figure}[htbp]
+\centering
+\begin{minipage}{0.88\linewidth}
+\centering
+\setlength{\parskip}{0pt}%
+\adjustbox{width=\linewidth,keepaspectratio,center}{\ThesisIncludeOrPlaceholder{fig-ch3-06_image11.png}}%
+\end{minipage}
+\caption{对分布漂移的自适应能力评估}
+\label{fig:ch3-nc-resist}
+\end{figure}
+
+\FloatBarrier
+\subsection{消融实验}\label{ux6d88ux878dux5b9eux9a8c}
+
+为分析关键超参数对性能的影响，本章方法将围绕时间窗口长度 \(L\) 与注意力参数 \(\gamma\) 两项变量开展消融实验。其中，时间窗口长度 \(L \in \{12, 24, 48, 72, 96, 120\}\)，用于分析不同时间窗口对预测精度的影响，以体现历史信息利用范围与预测精度的综合表现；另外，注意力参数 \(\gamma\) 的数值范围为 \(\{0.5, 1.0, \ldots, 3.0\}\)（步长 0.5），通过比较不同参数设置下 MAPE、AAS 与计算开销的变化，并据此绘制精度与效率之间的权衡曲线，以验证注意力机制设计的合理性与可调节性。
+
+\begin{figure}[htbp]
+\centering
+\adjustbox{width=\linewidth,max height=0.88\textheight,keepaspectratio,center}{%
+  \ThesisIncludeOrPlaceholder{fig-ch3-07_image12.pdf}%
+}
+\caption{Traffic 数据集上较短时间窗口区间不同训练轮次下 MAPE、AAS 与 Loss 随窗口长度的变化趋势}
+\label{fig:ch3-ablation-rho-epochs}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\adjustbox{width=\linewidth,max height=0.88\textheight,keepaspectratio,center}{%
+  \ThesisIncludeOrPlaceholder{fig-ch3-08_image13.pdf}%
+}
+\caption{Traffic 数据集上较长时间窗口区间不同训练轮次下 MAPE、AAS 与 Loss 随窗口长度的变化}
+\label{fig:ch3-ablation-alpha-epochs}
+\end{figure}
+
+如图~\ref{fig:ch3-ablation-rho-epochs}~与图~\ref{fig:ch3-ablation-alpha-epochs}~所示，实验在不同时间窗口长度 \(L\) 与注意力参数 \(\gamma\) 的组合下对预测模型训练动态进行了系统对比：两图各子图横轴均为时间窗口长度，自上而下三行子图纵轴依次为 MAPE、AAS 与 Loss；两图均按不同训练轮次分列，每列对应一种训练轮次。其中图~\ref{fig:ch3-ablation-rho-epochs}对应时间窗口为 12、24、48、72，图~\ref{fig:ch3-ablation-alpha-epochs}对应时间窗口为 96、120、144、168，展示各指标随窗口长度变化的曲线。
+
+实验结果表明，MAPE 对注意力参数 \(\gamma\) 与时间窗口长度 \(L\) 均表现出较高敏感性。在窗口长度固定的前提下，随着 \(\gamma\) 逐渐增大，MAPE 的收敛速度与最终精度整体呈下降趋势；尤其当 \(\gamma\) 取值较高（如 2.0--3.0）时，MAPE 通常能够在较少的 epoch 内快速达到较低水平，说明较强的注意力机制更有利于关键特征的捕捉与利用。相较之下，当 \(\gamma\) 取值较小时，MAPE 的波动更为明显，部分情形下出现收敛不足的问题。另一方面，随着窗口长度的提高，MAPE 的整体下界显著降低，收敛过程也相应加快。在窗口长度由 12 提升至 168 的过程中，MAPE 的下降趋势更加明显，表明更长的历史窗口能够为预测模型提供更充分的上下文信息，从而进一步增强预测效果。
+
+在鲁棒性方面，AAS 曲线在多数设置下保持较高水平并逐步稳定，说明所提出的预测策略在提高精度的同时，仍能较好地维持对异常变化的适应能力；但当窗口长度过长或 \(\gamma\) 取值过大时，虽能进一步降低 MAPE，但 AAS 却出现了下降的趋势。进一步从 Loss 曲线可见，各设置下损失均快速下降并趋近于稳定，表明训练过程整体可收敛；然而在小 \(\gamma\) 或短窗口长度条件下，MAPE 与 Loss、AAS 的收敛节奏并不同步，体现出特征学习在该条件下更易受噪声影响、稳定性不足。
+
+综合预测准确性、模型鲁棒性与训练稳定性三者的权衡结果可以看出：当时间窗口长度为 72 且注意力参数为 2.0 时，MAPE、AAS 能够快速达到并稳定在较优水平，Loss 收敛平滑且无明显震荡。因此，该参数组合在预测精度、异常适应能力、训练稳定性三项指标之间表现出更优的均衡性。
+
+\section{本章小结}\label{ux672cux7ae0ux5c0fux7ed3-1}
+
+本章围绕传统时序预测方法在应对突发变化和数据噪声时的局限，提出了一种基于注意力机制的自适应时序预测方法。该方法构建时序特征与预测权重之间的映射机制：首先在时序域提取周期性、趋势性和波动性等特征，利用注意力机制形成时间级权重图并通过自适应融合为预测输入，以提升模型对关键信息的捕捉能力；随后在频域采用小波变换的多尺度特征提取，并结合自适应掩码与注意力参数调制，使特征表示更加符合时序数据的自然分布，从而在控制噪声影响的同时增强对异常变化和分布漂移的鲁棒性。在实验评估中，本章从预测准确性、模型鲁棒性、计算效率与泛化能力等维度构建完整评测体系，并通过对时间窗口长度 \(L\) 与注意力参数 \(\gamma\) 的消融实验，分析刻画预测精度与计算效率之间的权衡关系，验证了本章方法在保持预测精度的前提下，实现更优鲁棒性和更高计算效率的可行性与可控性。
+

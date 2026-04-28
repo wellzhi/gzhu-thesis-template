@@ -1,0 +1,63 @@
+% !TEX root = ../main.tex
+%
+% content/achievements上面文件夹下的材料，是我《攻读硕士学位期间的科研成果》的全部材料，分别是会议论文一篇，专利两项，请将这些材料整合到content/12-achievements.tex中，并进行适当的排版和格式(format.png是样例格式）调整，使内容更加清晰易读。编写tex代码的时候，请保留这些提示词作为注释内容。
+% 要求：
+% 1. 严谨准确，不得有任何错误；
+% 2. 内容完整，不得有任何遗漏；
+% 3. 本页标题、字体格式符合论文格式要求；
+%
+% 材料来源说明（便于核对）：
+% - 会议论文：content/achievements/paper.pdf
+% - 专利受理通知书：content/achievements/paper1.jpg、content/achievements/paper2.jpg
+%
+% 版式说明：本页按 content/achievements/format.png 参考样式排版——不出现本人姓名、单位；论文条目为「第一作者，英文题名，《出处》。（状态）」；专利为「申请发明专利，发明人角色说明，《名称》。（申请信息）」。
+%
+% 版式技术说明：minipage 内默认会 \@arrayparboxrestore 为两端对齐，\raggedright 易被覆盖；改用 ragged2e 的 \RaggedRight（按字体固定 \spaceskip）。
+% 中英边界 xeCJK 的 CJKecglue 若含 plus 会在行末被拉伸，故在组内改为固定宽度；书名中 Computer Science 用 \mbox 防止词间被拆到两行。
+%
+% 奇数页起排：由 main.tex 在 \input 本文件前执行 \cleardoublepage
+
+\chapter*{攻读硕士学位期间的科研成果}
+\phantomsection
+\addcontentsline{toc}{chapter}{攻读硕士学位期间的科研成果}
+\thispagestyle{gzubody}
+\markboth{攻读硕士学位期间的科研成果}{攻读硕士学位期间的科研成果}
+
+\vspace{0.5\baselineskip}
+\noindent
+\begin{enumerate}[
+  label={\textbf{[\arabic*]}},
+  leftmargin=2.4em,
+  labelsep=0.55em,
+  itemsep=1.2\baselineskip,
+  parsep=0pt,
+  topsep=0pt,
+  align=left
+]
+
+  \item
+  \begingroup
+  \xeCJKsetup{CJKecglue = \hskip 0.25em\relax}
+  \begin{minipage}[t]{\linewidth}
+    \RaggedRight
+    \setlength{\parskip}{0pt}%
+    \setlength{\parindent}{0pt}%
+    {\songti 第一作者，}%
+    {\rmfamily\normalfont A Study on Information System Performance Optimization and Reliability}%
+    {\songti，《Lecture Notes in {\rmfamily\mbox{Computer Science}}》（International Conference on Information Systems），Springer，2025。（EI 收录，已发表）}%
+  \end{minipage}
+  \endgroup
+
+  \item
+  \begin{minipage}[t]{\linewidth}
+    \RaggedRight
+    \songti 申请发明专利，学生第四发明人，一种基于数据驱动的系统性能监控与优化方法。（申请号：202411059964.8；申请日：2024年8月5日；已受理）
+  \end{minipage}
+
+  \item
+  \begin{minipage}[t]{\linewidth}
+    \RaggedRight
+    \songti 申请发明专利，学生第三发明人，一种面向分布式系统的资源调度与管理装置。（申请号：202410572817.4；申请日：2024年5月10日；已受理）
+  \end{minipage}
+
+\end{enumerate}

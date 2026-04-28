@@ -1,0 +1,132 @@
+% !TEX root = ../main.tex
+% 请你完美复刻一下论文封面，论文封面如：content/titlepage/论文封面.docx
+% 要求字体准确，字号大小一致，布局完美复刻。论文封面中的学校代码和学号需要替换为空字符串。
+% 复刻完将封面放到 titlepage 页面的前一页，不要修改封面内容。
+% 保留上面提示词内容，作为 cover.tex 文件的注释内容。
+
+% 封面页：顶栏小四；校名 / 「硕士学位论文」初号黑体；
+% 题目区 / 学生类型 / 底部表均为三号宋体。下方间距与行距已收紧，使整块落在同一页（仍溢出时再考虑略减初号或题目行距）。
+\pagenumbering{gobble}
+\thispagestyle{empty}
+\begingroup
+% 封面单页排版：行距 1.0，避免与初号校名叠满一页
+\setstretch{1.0}
+\raggedbottom
+% 与校封常见的「块间距 / 表内行距」（数值已略收紧以保证同页）
+\newcommand*{\gzuCoverSkipAfterHead}{0.65cm}% 顶栏到校名
+\newcommand*{\gzuCoverSkipTitlePair}{0.28cm}% 「广州大学」与「硕士学位论文」之间
+\newcommand*{\gzuCoverSkipModule}{0.7cm}% 「题目 ↔ 学生类型」等通用块间距（修改时请同步下面两个 \dimexpr 中的 0.7cm）
+% 「广州大学 / 硕士学位论文」→「题目」：为 \gzuCoverSkipModule 的二倍，题目与学生类型随之下移
+\newcommand*{\gzuCoverSkipTitleBlock}{\dimexpr 0.7cm*2\relax}
+% 学生类型 →「学位论文作者」：不再额外留白（仅靠下方弹性伸缩顶格排一页）
+\newcommand*{\gzuCoverSkipStuToAuthor}{0pt}
+\newcommand*{\gzuCoverRowSep}{0.28cm}% 题目两线、学生类型两行
+% 底部五行：略松于原 0.28、略紧于 1.5 倍 0.42，兼顾“稍疏”与单页
+\newcommand*{\gzuCoverBottomRowSep}{0.35cm}
+
+\makeatletter
+\newlength{\gzuCoverFldCol}
+\setlength{\gzuCoverFldCol}{0.48\textwidth}
+\newcommand{\gzuCoverFldLine}[1]{%
+  \gzuCoverUnderC{\gzuCoverFldCol}{#1}%
+}
+% wasysym：须与 \CheckedBox 完全一致——\def\CheckedBox{\leavevmode\hbox to 0pt{\wasyfamily\char50\hss}\hbox{\wasyfamily\char8}}
+% 若空框用单独的 \mbox{\char50}，自然高度/宽度与「框+勾」不同，经 \resizebox 后会一大一小、线粗也不一致。
+% 空框：同布局，第二格用 \phantom{\char8} 占位；\gzuCoverBox / \gzuCoverChk / \gzuCoverBoxChecked 定义在 main.tex，声明页与之共用。
+\settowidth{\gzuCoverLblW}{{\songti\zihao{3}\selectfont 导师姓名及职称：}}%
+\addtolength{\gzuCoverLblW}{0.15em}
+\newcommand{\gzuCoverLblSpread}[1]{\songti\zihao{3}\selectfont\hbox to \gzuCoverLblW{#1}}%
+% 与底部表一致：标签栏 \gzuCoverLblW + 0.4cm + 内容栏 \gzuCoverFldCol
+\newcommand{\gzuCoverBlkW}{\dimexpr\gzuCoverLblW + 0.4cm + \gzuCoverFldCol\relax}
+\newlength{\gzuCoverTitleTagW}
+% 与横线上题名同为三号黑体，宽度须用黑体“题目：”测量，第二条横线才能与首条对齐
+\settowidth{\gzuCoverTitleTagW}{{\heiti\zihao{3}\selectfont 题目：}}
+\newlength{\gzuCoverTitleLineW}
+\setlength{\gzuCoverTitleLineW}{\dimexpr\gzuCoverBlkW-\gzuCoverTitleTagW+\ccwd\relax}
+% 提交日期：与「学科专业」等行相同——整栏一条下划线贯通，等长、居中排字（内容由 main.tex 的 \gzuSubmitDateText 控制，可为空）
+\newcommand{\gzuCoverDateRow}{%
+  \gzuCoverFldLine{\gzuSubmitDateText}%
+}
+\makeatother
+
+% 页顶留白：原 0.55cm 缩小三分之一 → 2/3×0.55cm
+\vspace*{\dimexpr 0.25cm\relax}
+
+% 顶栏：学校代码 / 学号为小四（较原五号大一号）
+\noindent\begin{minipage}[t]{0.48\textwidth}
+  \raggedright
+  {\zihao{-4}\selectfont 学校代码：%
+    \underline{\makebox[\dimexpr11em*3/5\relax][c]{\gzuSchoolCode}}}%
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\textwidth}
+  \raggedleft
+  {\zihao{-4}\selectfont 学\hspace{4\ccwd}号：%
+    \underline{\makebox[\dimexpr11em*3/5\relax][c]{\gzuStudentID}}}%
+\end{minipage}
+
+\vspace*{\gzuCoverSkipAfterHead}
+
+% 主标题：初号黑体「大学」「硕士学位论文」（\zihao{0}，加粗用黑体族）
+\begin{center}
+{\heiti\zihao{0}\selectfont 广\ 州\ 大\ 学\par}
+\vspace{\gzuCoverSkipTitlePair}
+{\heiti\zihao{0}\selectfont 硕\ 士\ 学\ 位\ 论\ 文\par}
+\end{center}
+
+\vspace{\gzuCoverSkipTitleBlock}
+
+% 题目：「题目：」与题名均三号黑体；横线等宽，左端与题名起笔对齐（标签占 \gzuCoverTitleTagW）
+\begin{center}
+\begin{minipage}[t]{\gzuCoverBlkW}
+  \setlength{\parindent}{0pt}%
+  \noindent
+  \makebox[\gzuCoverTitleTagW][l]{\heiti\zihao{3}\selectfont 题目：}%
+  \heiti\zihao{3}\selectfont
+  \underline{\makebox[\gzuCoverTitleLineW][l]{\gzuThesisTitleCN}}\par
+  {\heiti\zihao{3}\selectfont\vspace{1.5\baselineskip}}%
+  \noindent
+  \makebox[\gzuCoverTitleTagW][l]{}%
+  \heiti\zihao{3}\selectfont
+  \underline{\makebox[\gzuCoverTitleLineW]{}}
+\end{minipage}
+\end{center}
+
+\vspace{\gzuCoverSkipModule}
+
+% 学生类型：三号宋体；标签列与底部表同宽同对齐；复选框 wasysym，学术未勾选、专业勾选
+\begin{center}
+\begin{minipage}{\gzuCoverBlkW}
+\songti\zihao{3}\selectfont
+\setlength{\tabcolsep}{0pt}%
+\begin{tabular}{@{}l@{\hspace{0.4cm}}p{\gzuCoverFldCol}@{}}
+  \gzuCoverLblSpread{学\hfil 生\hfil 类\hfil 型：} &
+  \begin{tabular}[t]{@{}c@{\kern0.35em}l@{}}
+    \gzuCoverChk{\gzuCoverBox} & \ 学术学位硕士 \\[\gzuCoverRowSep]
+    \gzuCoverChk{\gzuCoverBoxChecked} & \ 专业学位硕士 \\
+  \end{tabular} \\
+\end{tabular}
+\end{minipage}
+\end{center}
+
+% 学生类型 → 底部：无固定竖缝；弹性空白吸收版心余量，避免挤到第二页
+\vspace{\gzuCoverSkipStuToAuthor}
+\vspace{0pt plus 1fill}
+
+% 底部五行：三号宋体；行间约 0.35cm，setspace 适度放宽（略低于前版 1.62）
+\begin{center}
+\begin{spacing}{1.45}
+\songti\zihao{3}\selectfont
+\setlength{\tabcolsep}{0pt}
+\begin{tabular}{@{}l@{\hspace{0.4cm}}p{\gzuCoverFldCol}@{}}
+\gzuCoverLblSpread{学\hfil 位\hfil 论\hfil 文\hfil 作\hfil 者：} & \gzuCoverFldLine{\gzuAuthor}\\[\gzuCoverBottomRowSep]
+\gzuCoverLblSpread{导\hfil 师\hfil 姓\hfil 名\hfil 及\hfil 职\hfil 称：} & \gzuCoverFldLine{\gzuSupervisor\ \gzuSupervisorTitle}\\[\gzuCoverBottomRowSep]
+\gzuCoverLblSpread{学\hfil 院：} & \gzuCoverFldLine{\gzuCollege}\\[\gzuCoverBottomRowSep]
+\gzuCoverLblSpread{学\hfil 科\hfil 专\hfil 业：} & \gzuCoverFldLine{\gzuMajor}\\[\gzuCoverBottomRowSep]
+\gzuCoverLblSpread{论\hfil 文\hfil 提\hfil 交\hfil 日\hfil 期：} & \gzuCoverDateRow
+\end{tabular}
+\end{spacing}
+\end{center}
+
+\vspace*{0.2cm}
+\endgroup
+\clearpage

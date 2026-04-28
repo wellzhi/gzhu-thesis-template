@@ -1,0 +1,28 @@
+% !TEX root = ../main.tex
+% 04 英文摘要（与中文摘要一致：收紧顶空；不写入印刷目录，仅 \pdfbookmark 供 PDF 侧栏书签）
+\phantomsection
+\pdfbookmark[0]{ABSTRACT}{abstract-en}
+\vspace*{-\dimexpr\headheight+\headsep\relax}
+{\centering\rmfamily\zihao{-2} ABSTRACT\par}
+\vspace{0.5\baselineskip}
+\begingroup
+\setlength{\parindent}{2em}%
+% 英文摘要版式：整词断行（不在行末用连字符拆词）、正文两端对齐（类 Word 的 justified）；不改动摘要正文措辞
+\justifying
+\hyphenpenalty=10000\relax
+\exhyphenpenalty=10000\relax
+\sloppy
+\emergencystretch=2.5em\relax
+\noindent\hspace{2em}With the rapid development of information technology, artificial intelligence has been widely applied in various fields. This research, as an academic thesis, mainly explores the technical development and application prospects in related fields. The research content covers multiple technical directions, including algorithm optimization, model improvement, and application expansion. Through systematic analysis and experimental verification, this research proposes a series of innovative solutions, contributing new ideas and methods to the development of related fields.
+
+\noindent\hspace{2em}(1) To address the limitations of traditional methods in specific scenarios, this research proposes an improved technical solution. By introducing innovative constraint mechanisms and adaptive adjustment strategies, this method effectively improves the system's performance. Experimental results show that the proposed scheme exhibits good adaptability in multiple test scenarios, with performance indicators meeting expected goals under various test conditions, while maintaining system stability under normal conditions.
+
+\noindent\hspace{2em}(2) To address the transparency and understandability issues in complex systems, this research further proposes an analysis framework based on novel mechanisms. By visualizing key elements and decision processes, this method makes the system's internal operations more transparent. In typical application scenarios, this method can accurately identify key factors affecting decisions, helping users understand the basis of the system's judgments. Experimental results show that while ensuring system performance, this method significantly improves the system's interpretability and reliability.
+
+\noindent\hspace{2em}This research improves the applicability and reliability of related technologies in practical applications by improving the system design framework and enhancing system interpretability. The research results provide new ideas and methods for building more efficient and reliable intelligent systems, which have important theoretical significance and practical value for the future development of related technologies.
+
+\vspace{\baselineskip}
+\noindent{\rmfamily\bfseries\zihao{-4} Keywords: }{\rmfamily\zihao{-4} Information Systems; Performance Optimization; Reliability Design; Monitoring Management; Architecture Innovation}
+\endgroup
+
+\clearpage

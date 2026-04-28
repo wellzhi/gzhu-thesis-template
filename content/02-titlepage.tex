@@ -1,0 +1,73 @@
+% !TEX root = ../main.tex
+% 02 扉页（不编页码）
+\pagenumbering{gobble}
+\thispagestyle{empty}
+
+% 扉页眉：标签四字宽分散对齐；属性值无下划线（空白处仅占位宽度）
+\noindent\begin{minipage}{\linewidth}
+{\zihao{5}%
+% \noindent\hbox to 4\ccwd{分\hfil 类\hfil 号}：\makebox[3.5cm][l]{}%
+\noindent\hbox to 4\ccwd{学\hfil 校\hfil 代\hfil 码}：\makebox[3.5cm][l]{\gzuSchoolCode}%
+\hfill
+% \hbox to 4\ccwd{密\hfil 级}：\makebox[3.5cm][l]{}%
+\noindent\hbox to 4\ccwd{学\hfil 号}：\makebox[3.5cm][l]{\gzuStudentID}%
+\par\vspace{0.28cm}
+\hfill
+% \hbox to 4\ccwd{保\hfil 密\hfil 日\hfil 期}：\makebox[3.5cm][l]{}%
+\par\vspace{0.28cm}
+% \noindent\hbox to 4\ccwd{学\hfil 号}：\makebox[3.5cm][l]{\gzuStudentID}%
+% \hfill
+% \hbox to 4\ccwd{保\hfil 密\hfil 期\hfil 限}：\makebox[3.5cm][l]{}%
+% \par
+}
+\end{minipage}
+
+\begingroup
+\setstretch{1.2}
+\vspace*{0.8cm}
+\begin{center}
+{\heiti\zihao{3} 广州大学硕士学位论文}
+
+\vspace{1.2cm}
+{\heiti\zihao{2}\parbox{0.88\textwidth}{\centering \gzuThesisTitleCN}\par}
+\vspace{0.6cm}
+{\heiti\zihao{2}\parbox{0.9\textwidth}{\centering \gzuThesisTitleEN}\par}
+\vspace{1.5cm}
+{\heiti\zihao{3} \gzuAuthor \par}
+\end{center}
+
+\vspace{1.0cm}
+\begin{center}
+\begin{spacing}{1.25}
+\zihao{4}
+\setlength{\tabcolsep}{0pt}
+\newcommand{\gzuCoverLineW}{5.2cm}
+% 以最长标签（不含冒号）定宽；短标签用 \hfil 分散对齐；两行九字标签保持自然字距（与模板一致）
+\makeatletter
+\settowidth{\gzuCoverLblW}{答辩委员会委员（签名）}%
+\settowidth{\@tempdima}{答辩委员会主席（签名）}%
+\ifdim\@tempdima>\gzuCoverLblW
+  \setlength{\gzuCoverLblW}{\@tempdima}%
+\fi
+\settowidth{\@tempdima}{：}%
+% 学科专业 / 研究方向 / 论文答辩日期 三行在标签与冒号之间留一字距，占位行宽度需含该间距
+\setlength{\gzuCoverColW}{\dimexpr\gzuCoverLblW+0.5em+\@tempdima\relax}%
+\makeatother
+% 标签区定宽 + 统一字距 + 冒号，保证六行冒号竖线对齐
+\newcommand{\gzuCoverLblColon}[1]{\hbox to \gzuCoverLblW{#1}\hspace{0.5em}：}
+\begin{tabular}{@{}l@{\hspace{0.4cm}}l@{}}
+\gzuCoverLblColon{学\hfil 科\hfil 专\hfil 业} & \gzuCoverUnderC{\gzuCoverLineW}{\gzuMajor}\\[0.32cm]
+\gzuCoverLblColon{研\hfil 究\hfil 方\hfil 向} & \gzuCoverUnderC{\gzuCoverLineW}{\gzuDirection}\\[0.32cm]
+\gzuCoverLblColon{论\hfil 文\hfil 答\hfil 辩\hfil 日\hfil 期} & \gzuCoverUnderC{\gzuCoverLineW}{\gzuDefenseDate}\\[0.32cm]
+\gzuCoverLblColon{指\hfil 导\hfil 教\hfil 师\hfil （签名）} & \gzuCoverUnderC{\gzuCoverLineW}{}\\[0.32cm]
+\gzuCoverLblColon{\hss 答辩委员会主席（签名）\hss} & \gzuCoverUnderC{\gzuCoverLineW}{}\\[0.32cm]
+\gzuCoverLblColon{\hss 答辩委员会委员（签名）\hss} & \gzuCoverUnderC{\gzuCoverLineW}{}\\[0.24cm]
+\makebox[\gzuCoverColW]{} & \gzuCoverUnderC{\gzuCoverLineW}{}\\[0.24cm]
+\makebox[\gzuCoverColW]{} & \gzuCoverUnderC{\gzuCoverLineW}{}\\[0.24cm]
+\makebox[\gzuCoverColW]{} & \gzuCoverUnderC{\gzuCoverLineW}{}
+\end{tabular}
+\end{spacing}
+\end{center}
+
+\endgroup
+\clearpage

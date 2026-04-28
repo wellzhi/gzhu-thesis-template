@@ -1,0 +1,21 @@
+% !TEX root = ../main.tex
+% 11 参考文献（排在正文章节之后；数据库见同目录 references.bib）
+% 数字型著录顺序由正文首次引用顺序决定；2025 年文献在参考文献表中的前置由 main.tex 中 \begin{document} 后 \nocite{ref20,add02,add06,add07,ref29} 统一控制。
+% \bibliographystyle{gbt7714-numerical}
+\bibliographystyle{bst/gbt7714-numerical-local}
+% 须先由 \bibsection 起章再起页，再 \addcontentsline，否则目录中「参考文献」会落在前一章末页
+\renewcommand{\bibsection}{%
+  \chapter*{\bibname}%
+  \markboth{\bibname}{\bibname}%
+  \phantomsection
+  \addcontentsline{toc}{chapter}{\bibname}%
+}
+% 参考文献表版式：整词断行（行末不用连字符拆英文单词）、条目段落两端对齐（类 Word justified）
+\begingroup
+\justifying
+\hyphenpenalty=10000\relax
+\exhyphenpenalty=10000\relax
+\sloppy
+\emergencystretch=2.5em\relax
+\bibliography{content/references}
+\endgroup

@@ -1,0 +1,69 @@
+% !TEX root = ../main.tex
+% 01 原创性声明与学位论文版权使用授权书（不编页码）
+\thispagestyle{empty}
+% 正文为四号（\zihao{4}）；两处标题较正文再大一号为小三（\zihao{-3}），宋体加粗
+\begingroup
+\zihao{4}\selectfont
+% 保密 / 不保密：与封面相同 \gzuCoverChk{\gzuCoverBox}（见 main.tex；当前字号下 \ccwd 缩放，两框一致）
+\begin{center}
+{\zihao{-3}\selectfont\songti\bfseries\selectfont 广州大学学位论文原创性声明}
+\end{center}
+
+\vspace{0.2cm}
+本人郑重声明：所呈交的学位论文，是本人在导师的指导下，独立进行研究工作所取得的成果。除文中已经注明引用的内容外，本论文不包含任何其他个人或集体已经发表或撰写过的作品成果。对本文的研究作出重要贡献的个人和集体，均已在文中以明确方式标明。本人完全意识到本声明的法律结果由本人承担。
+
+\vspace{0.3cm}
+% 签名与日期同一行；标签、冒号后留白与日期均加粗，无下划线
+\noindent\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lr@{}}%
+\textbf{学位论文作者签名：} & \textbf{年\quad \quad 月\quad \quad 日}%
+\end{tabular*}
+
+\vspace{1.5cm}
+\begin{center}
+{\zihao{-3}\selectfont\songti\bfseries\selectfont 广州大学学位论文版权使用授权书}
+\end{center}
+
+\vspace{0.2cm}
+本学位论文作者完全了解广州大学有关保留、使用学位论文的规定，即：研究生在校攻读学位期间论文工作的知识产权单位属广州大学。学校有权保留并向国家主管部门或其指定机构送交论文的电子版和纸质版，允许学位论文被检索、查阅和借阅；学校可以公布学位论文的全部或部分内容，可以允许采用影印、缩印、数字化或其他手段保存、汇编学位论文。（保密论文保密期满后，使用本授权书）
+
+\vspace{0.2cm}
+% 自「本学位论文电子版和纸质版内容完全一致，属于」起整段左缩进（2em，与全文首行缩进一致）
+\begin{list}{}{%
+  \setlength{\leftmargin}{2em}%
+  \setlength{\rightmargin}{0pt}%
+  \setlength{\itemindent}{0pt}%
+  \setlength{\labelsep}{0pt}%
+  \setlength{\labelwidth}{0pt}%
+  \setlength{\itemsep}{0pt}%
+  \setlength{\parsep}{0pt}%
+  \setlength{\topsep}{0pt}%
+  \setlength{\partopsep}{0pt}%
+}
+\item\relax
+本学位论文电子版和纸质版内容完全一致，属于：
+
+\vspace{0.3em}
+\noindent\gzuCoverChk{\gzuCoverBox}~保密，在\underline{\hspace{2cm}}年解密后适用本授权书。
+
+\noindent\gzuCoverChk{\gzuCoverBox}~不保密。
+
+\vspace{0.3em}
+\noindent （请在以上相应方框内打“√”）
+\end{list}
+
+\vspace{0.3cm}
+% 以最长标签定宽右对齐列，使两行「：」竖对齐；无下划线；标签与日期均加粗（避免 tabular* 与 p 列产生 Overfull）
+\begingroup
+\settowidth{\dimen0}{\textbf{学位论文作者签名：}}%
+\noindent\makebox[\textwidth]{%
+  \makebox[\dimen0][r]{\textbf{学位论文作者签名：}}\hfill
+  \textbf{年\quad \quad 月\quad \quad 日}%
+}\\[0.8em]%
+\noindent\makebox[\textwidth]{%
+  \makebox[\dimen0][r]{\textbf{导师签名：}}\hfill
+  \textbf{年\quad \quad 月\quad \quad 日}%
+}%
+\endgroup
+
+\endgroup
+\clearpage

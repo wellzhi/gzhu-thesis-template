@@ -1,0 +1,28 @@
+code/mdepipeline/deps/*
+code/qingxihua/.venv/
+code/imageCode/.venv/
+
+# 本地脚本依赖（生成示例插图等）
+/.venv/
+
+# 快速编译模式标记（存在则 graphicx draft + latexmk 关 SyncTeX）；勿提交
+/thesis.fast.build
+
+# LaTeX / latexmk 编译产物（thesis 根目录，与 main.tex 同名）
+/main.aux
+/main.bbl
+/main.blg
+/main.fdb_latexmk
+/main.fls
+/main.log
+/main.out
+/main.toc
+/main.xdv
+/main.synctex.gz
+/main.synctex(busy)
+
+/interview/*
+missfont.log
+main 2.fls
+main 2.synctex.gz
+main 3.synctex.gz
