@@ -3,15 +3,15 @@
 图片展示
 <table>
   <tr>
-    <td align="center"><img src="images/1.png" width="160"/><br/>图片1</td>
-    <td align="center"><img src="images/2.png" width="160"/><br/>图片2</td>
-    <td align="center"><img src="images/3.png" width="160"/><br/>图片3</td>
+    <td align="center"><img src="images/1.png" width="266"/><br/>图片1</td>
+    <td align="center"><img src="images/2.png" width="266"/><br/>图片2</td>
+    <td align="center"><img src="images/3.png" width="266"/><br/>图片3</td>
 
   </tr>
   <tr>
-    <td align="center"><img src="images/4.png" width="160"/><br/>图片4</td>
-    <td align="center"><img src="images/5.png" width="160"/><br/>图片5</td>
-    <td align="center"><img src="images/6.png" width="160"/><br/>图片6</td>
+    <td align="center"><img src="images/4.png" width="266"/><br/>图片4</td>
+    <td align="center"><img src="images/5.png" width="266"/><br/>图片5</td>
+    <td align="center"><img src="images/6.png" width="266"/><br/>图片6</td>
   </tr>
 </table>
 
