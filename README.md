@@ -2,16 +2,38 @@
 
 在 **工程根目录**（与 **`main.tex` 同级**，例如本仓库的 `thesis_template/`）下执行编译；输出 **`main.pdf`** 与主文件同目录。
 
+<a id="md-toc"></a>
+## 目录
+
+- [为何有本仓库](#md-why)
+- [Word 与 LaTeX 常见维度对照](#md-word-latex)
+- [1. 用法速览](#md-usage)
+- [2. 环境与工具链（macOS）](#md-env)
+- [3. 编译说明](#md-build)
+  - [3.1 快速模式](#md-fast-build)
+  - [3.2 参考文献与 BibTeX](#md-bibtex)
+  - [3.3 为何使用 `latexmk -g`](#md-latexmk-g)
+  - [3.4 清理](#md-clean)
+- [4. 仓库结构](#md-structure)
+  - [4.1 正文](#md-structure-content)
+  - [4.2 其他路径](#md-structure-extra)
+- [5. 根目录编译产物](#md-main-artifacts)
+  - [5.1 源与输出](#md-artifacts-sources)
+  - [5.2 辅助与日志](#md-artifacts-aux)
+  - [5.3 中间文件](#md-artifacts-xdv)
+
 **文档结构：** 本仓库缘由 → 用法速览 → 环境与工具链 → 编译说明（含插图、参考文献）→ 仓库结构 → 根目录编译产物
 
 ---
 
+<a id="md-why"></a>
 ## 为何有本仓库
 
 - 在采用word写作过程中，设置图片不压缩保持清晰度，当word文件偏大时（100多M），编辑数学公式输入不兼容内容时，出现word奔溃，导致论文文件打不开，修复麻烦。
 
 - 为方便将广州大学硕士学位论文版式固化为可重复编译的工程，下表从常见维度对比 **Word** 与 **LaTeX**，便于按个人习惯进行取舍。
 
+<a id="md-word-latex"></a>
 ### Word 与 LaTeX 常见维度对照
 
 | 维度 | Microsoft Word | LaTeX（如本仓库） |
@@ -27,6 +49,7 @@
 > **说明：LaTeX 的突出点在于**源文件结构化**与**版式批处理一致**。纯文本源码更利于 diff、脚本与自动化。
 
 ---
+<a id="md-usage"></a>
 ## 1. 用法速览
 
 | 场景 | 命令 | 备注 |
@@ -40,6 +63,7 @@
 
 ---
 
+<a id="md-env"></a>
 ## 2. 环境与工具链（macOS）
 
 | 项目 | 要求 |
@@ -50,8 +74,10 @@
 
 ---
 
+<a id="md-build"></a>
 ## 3. 编译说明
 
+<a id="md-fast-build"></a>
 ### 3.1 快速模式（`thesis.fast.build`）
 
 | 状态 | 行为 |
@@ -61,6 +87,7 @@
 
 `thesis.fast.build` 写入 **`.gitignore`**，通常勿提交仓库。
 
+<a id="md-bibtex"></a>
 ### 3.2 参考文献与 BibTeX
 
 | 项目 | 说明 |
@@ -71,6 +98,7 @@
 
 首次编译或删掉 `main.bbl` 后，仅跑一轮 XeLaTeX 时出现 **Citation undefined** 属于正常现象；请以 **`latexmk`** 或 **`xelatex → bibtex → xelatex → xelatex`** 完整跑通，直至不再报未定义引用。
 
+<a id="md-latexmk-g"></a>
 ### 3.3 为何使用 `latexmk -g`
 
 切换快速 / 定稿往往只增删 **`thesis.fast.build`**，latexmk 可能不把它当作 `main.tex` 的依赖而**跳过**一次编译。**`-g`** 强制重跑。`compile-fast.sh` 与 `compile-final.sh` 已内置 **`latexmk -g -xelatex`**。
@@ -81,6 +109,7 @@
 latexmk -g -xelatex main.tex
 ```
 
+<a id="md-clean"></a>
 ### 3.4 清理
 
 | 方式 | 作用 |
@@ -90,8 +119,10 @@ latexmk -g -xelatex main.tex
 
 ---
 
+<a id="md-structure"></a>
 ## 4. 仓库结构
 
+<a id="md-structure-content"></a>
 ### 4.1 正文（`content/`）
 
 与 `main.tex` 中 `\input{content/…}` 顺序一致。
@@ -113,6 +144,7 @@ latexmk -g -xelatex main.tex
 | 12 | `12-achievements.tex` | 攻读硕士期间科研成果（按学校格式自行填写） |
 | 13 | `13-acknowledgments.tex` | 致谢 |
 
+<a id="md-structure-extra"></a>
 ### 4.2 其他路径
 
 | 路径 | 说明 |
@@ -128,12 +160,14 @@ latexmk -g -xelatex main.tex
 
 ---
 
+<a id="md-main-artifacts"></a>
 ## 5. 根目录编译产物（`main.*`）
 
 **长期保留：** `main.tex`（源）、`main.pdf`（成品，是否纳入版本库依课题组规定）。
 
 **多为可再生成：** 删掉后重新 `latexmk` 即可；建议配合 `.gitignore`，不要把辅助文件当「手改源」。
 
+<a id="md-artifacts-sources"></a>
 ### 5.1 源与输出
 
 | 文件 | 说明 |
@@ -141,6 +175,7 @@ latexmk -g -xelatex main.tex
 | `main.tex` | 主控文档，需版本管理 |
 | `main.pdf` | 交付与打印 |
 
+<a id="md-artifacts-aux"></a>
 ### 5.2 辅助与日志
 
 | 文件 | 说明 |
@@ -153,6 +188,7 @@ latexmk -g -xelatex main.tex
 | `main.fls`、`main.fdb_latexmk` | latexmk 依赖追踪 |
 | `main.synctex.gz`（若有） | 源码与 PDF 正反向同步 |
 
+<a id="md-artifacts-xdv"></a>
 ### 5.3 中间文件
 
 | 文件 | 说明 |
