@@ -5,24 +5,19 @@
 <a id="md-toc"></a>
 ## 目录
 
-- [为何有本仓库](#md-why)
-- [Word 与 LaTeX 常见维度对照](#md-word-latex)
-- [1. 用法速览](#md-usage)
-- [2. 环境与工具链（macOS）](#md-env)
-- [3. 编译说明](#md-build)
-  - [3.1 快速模式](#md-fast-build)
-  - [3.2 参考文献与 BibTeX](#md-bibtex)
-  - [3.3 为何使用 `latexmk -g`](#md-latexmk-g)
-  - [3.4 清理](#md-clean)
-- [4. 仓库结构](#md-structure)
-  - [4.1 正文](#md-structure-content)
-  - [4.2 其他路径](#md-structure-extra)
-- [5. 根目录编译产物](#md-main-artifacts)
-  - [5.1 源与输出](#md-artifacts-sources)
-  - [5.2 辅助与日志](#md-artifacts-aux)
-  - [5.3 中间文件](#md-artifacts-xdv)
+- [广州大学硕士学位论文 · LaTeX模板示例](#广州大学硕士学位论文--latex模板示例)
+  - [目录](#目录)
+  - [为何有本仓库](#为何有本仓库)
+  - [1. 用法速览](#1-用法速览)
+  - [2. 仓库结构](#2-仓库结构)
+    - [2.1 论文章节（`content/`）](#21-论文章节content)
+    - [2.2 其他路径](#22-其他路径)
+  - [3. 写作环境（macOS）](#3-写作环境macos)
+  - [4. 编译产物](#4-编译产物)
+    - [4.1 源与输出](#41-源与输出)
+    - [4.2 辅助与日志](#42-辅助与日志)
+    - [4.3 中间文件](#43-中间文件)
 
-**文档结构：** 本仓库缘由 → 用法速览 → 环境与工具链 → 编译说明（含插图、参考文献）→ 仓库结构 → 根目录编译产物
 
 ---
 
@@ -32,9 +27,6 @@
 - 在采用word写作过程中，设置图片不压缩保持清晰度，当word文件偏大时（100多M），编辑数学公式输入不兼容内容时，出现word奔溃，导致论文文件打不开，修复麻烦。
 
 - 为方便将广州大学硕士学位论文版式固化为可重复编译的工程，下表从常见维度对比 **Word** 与 **LaTeX**，便于按个人习惯进行取舍。
-
-<a id="md-word-latex"></a>
-### Word 与 LaTeX 常见维度对照
 
 | 维度 | Microsoft Word | LaTeX（如本仓库） |
 |:--|:--|:--|
@@ -46,7 +38,7 @@
 | **页数与同字数观感** | 通过行距、段距与分页可拉出更「松」的版面，同字数篇幅通常更长。 | 默认往往更紧凑（与版心、字号、行距设置有关），同字数篇幅常少于「松排版」Word 稿。 |
 | **字体与环境** | 一般随系统装好中文字体即可，所见即校验。 | 需配置 `fontspec`/xeCJK 等（本工程已示例）；新环境需保证系统或 TeX 侧有所用字体，按 `main.log` 排错。 |
 
-> **说明：LaTeX 的突出点在于**源文件结构化**与**版式批处理一致**。纯文本源码更利于 diff、脚本与自动化。
+> 说明：LaTeX 的突出点在于源文件结构化与版式批处理一致。纯文本源码更利于 diff、脚本与自动化。
 
 ---
 <a id="md-usage"></a>
@@ -57,77 +49,19 @@
 | 日常改稿 | `./compile-fast.sh` | 写入 `thesis.fast.build`，插图为 draft 占位框，编译更快 |
 | **定稿 / 送审 / 提交** | `./compile-final.sh` | **删除**快速标记，嵌入 `figures/` 中真实图 |
 | 从零干净重编 | `./rebuild.sh` | 先清理辅助文件再全文编译 |
-| 手动 | `latexmk -g -xelatex main.tex` | `-g` 建议保留；开关快速/定稿仅靠 `thesis.fast.build` 时，latexmk 常需强制重跑 |
+
 
 > **送审稿 PDF**：一律用 **`./compile-final.sh`**；若怀疑 `.aux`/`.bbl` 损坏，改用 **`./rebuild.sh`**。不要用 **`compile-fast`** 的输出交稿。
 
 ---
 
-<a id="md-env"></a>
-## 2. 环境与工具链（macOS）
-
-| 项目 | 要求 |
-|:--|:--|
-| TeX 发行版 | MacTeX 或 TeX Live（含 `latexmk`、`xelatex`、`bibtex`） |
-| 引擎 | **XeLaTeX**（勿用 pdfLaTeX） |
-| 中文字体 | 如字体缺失，请安装对应字体 |
-
----
-
-<a id="md-build"></a>
-## 3. 编译说明
-
-<a id="md-fast-build"></a>
-### 3.1 快速模式（`thesis.fast.build`）
-
-| 状态 | 行为 |
-|:--|:--|
-| 根目录存在空文件 **`thesis.fast.build`** | `graphicx` 选项为 **draft**，图为占位框，不严格要求磁盘上必有图文件；关闭 SyncTeX |
-| **不存在**该文件 | 正常 `\includegraphics`；若图中路径下缺文件，`main.tex` 中定义的 **`\ThesisFigFillWidth` / `\ThesisIncludeOrPlaceholder`** 会排文字占位框而非中断编译 |
-
-`thesis.fast.build` 写入 **`.gitignore`**，通常勿提交仓库。
-
-<a id="md-bibtex"></a>
-### 3.2 参考文献与 BibTeX
-
-| 项目 | 说明 |
-|:--|:--|
-| 数据库 | `content/references.bib` |
-| 样式 | `bst/gbt7714-numerical-local.bst`（在 `content/11-references.tex` 中设定） |
-| 首次引用顺序 | 数字型国标顺序；`**\begin{document}` 后的 `\nocite{…}`** 可微调参考文献表条目顺序（见 `main.tex` 注释） |
-
-首次编译或删掉 `main.bbl` 后，仅跑一轮 XeLaTeX 时出现 **Citation undefined** 属于正常现象；请以 **`latexmk`** 或 **`xelatex → bibtex → xelatex → xelatex`** 完整跑通，直至不再报未定义引用。
-
-<a id="md-latexmk-g"></a>
-### 3.3 为何使用 `latexmk -g`
-
-切换快速 / 定稿往往只增删 **`thesis.fast.build`**，latexmk 可能不把它当作 `main.tex` 的依赖而**跳过**一次编译。**`-g`** 强制重跑。`compile-fast.sh` 与 `compile-final.sh` 已内置 **`latexmk -g -xelatex`**。
-
-若手动创建或删除了标记文件，请执行：
-
-```bash
-latexmk -g -xelatex main.tex
-```
-
-<a id="md-clean"></a>
-### 3.4 清理
-
-| 方式 | 作用 |
-|:--|:--|
-| `./clean.sh` | 删除常见辅助文件（默认保留 `main.pdf`；`--pdf` 可一并删除 PDF） |
-| `latexmk -C` | 按 latexmk 规则清理 |
-
----
-
 <a id="md-structure"></a>
-## 4. 仓库结构
+## 2. 仓库结构
 
 <a id="md-structure-content"></a>
-### 4.1 正文（`content/`）
+### 2.1 论文章节（`content/`）
 
-与 `main.tex` 中 `\input{content/…}` 顺序一致。
-
-| # | 文件 | 说明 |
+| 顺序 | 文件 | 说明 |
 |:--:|:--|:--|
 | 00 | `00-cover.tex` | 封面 |
 | 01 | `01-declaration.tex` | 原创性声明与版权使用授权 |
@@ -141,34 +75,36 @@ latexmk -g -xelatex main.tex
 | 09 | `09-ch4-body.tex` | 第四章 **基于异常检测的故障诊断方法** |
 | 10 | `10-ch5-conclusion.tex` | 第五章 总结与展望 |
 | 11 | `11-references.tex` | 参考文献章 |
-| 12 | `12-achievements.tex` | 攻读硕士期间科研成果（按学校格式自行填写） |
+| 12 | `12-achievements.tex` | 攻读硕士期间科研成果 |
 | 13 | `13-acknowledgments.tex` | 致谢 |
 
 <a id="md-structure-extra"></a>
-### 4.2 其他路径
+### 2.2 其他路径
 
 | 路径 | 说明 |
 |:--|:--|
-| `main.tex` | 导言区、`thesis.fast.build` 与插图宏、`\input` 顺序、学籍与封面信息宏（如 `\gzuStudentID`）、`\nocite` 等 |
-| `bst/gbt7714-numerical-local.bst` | GB/T 7714 数字编码著录样式（本地拷贝） |
-| `figures/ch1/` … `figures/ch4/` | 插图检索路径（见 `main.tex` 中 `\graphicspath`） |
-| `.latexmkrc` | `latexmk` 主文件与 `$bibtex_use` 等 |
+| `main.tex` | 论文主文件 |
+| `bst/gbt7714-numerical-local.bst` | GB/T 7714 数字编码著录样式 |
+| `figures/` | 论文附件路径 |
+| `content/references.bib` | 参考文献文章引用列表｜
+| 首次引用顺序 | 数字型国标顺序；`**\begin{document}` 后的 `\nocite{…}`** 可微调参考文献表条目顺序（见 `main.tex` 注释） |
 
-**修改论文元信息**：在 `main.tex` 中编辑学校/个人信息相关宏；摘要正文在 `content/03-abstract-cn.tex` 与 `content/04-abstract-en.tex`。
 
-若本机另有 **`import/`**、**`code/converter/`** 或 **`content/references/`**（文献 PDF 归档等），属个人扩展，以你本地目录为准；模板不依赖这些路径即可完整编译。
+<a id="md-env"></a>
+## 3. 写作环境（macOS）
 
----
+| 项目 | 要求 |
+|:--|:--|
+| TeX 发行版 | MacTeX 或 TeX Live（含 `latexmk`、`xelatex`、`bibtex`） |
+| 引擎 | **XeLaTeX**（勿用 pdfLaTeX） |
+| 中文字体 | 如字体缺失，请安装对应字体 |
 
 <a id="md-main-artifacts"></a>
-## 5. 根目录编译产物（`main.*`）
+## 4. 编译产物
 
-**长期保留：** `main.tex`（源）、`main.pdf`（成品，是否纳入版本库依课题组规定）。
-
-**多为可再生成：** 删掉后重新 `latexmk` 即可；建议配合 `.gitignore`，不要把辅助文件当「手改源」。
 
 <a id="md-artifacts-sources"></a>
-### 5.1 源与输出
+### 4.1 源与输出
 
 | 文件 | 说明 |
 |:--|:--|
@@ -176,7 +112,7 @@ latexmk -g -xelatex main.tex
 | `main.pdf` | 交付与打印 |
 
 <a id="md-artifacts-aux"></a>
-### 5.2 辅助与日志
+### 4.2 辅助与日志
 
 | 文件 | 说明 |
 |:--|:--|
@@ -189,7 +125,7 @@ latexmk -g -xelatex main.tex
 | `main.synctex.gz`（若有） | 源码与 PDF 正反向同步 |
 
 <a id="md-artifacts-xdv"></a>
-### 5.3 中间文件
+### 4.3 中间文件
 
 | 文件 | 说明 |
 |:--|:--|
